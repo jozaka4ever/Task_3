@@ -54,6 +54,34 @@ class BasePage:
     def _get_text(self, locator):
         return self._find_visible(locator).text
 
+    def _wait_for_text(self, locator, predicate, timeout=None):
+        """Дождаться видимого элемента с текстом, удовлетворяющим условию."""
+
+        def matching_text(driver):
+            try:
+                element = ec.visibility_of_element_located(locator)(driver)
+                if element:
+                    text = element.text
+                    return text if predicate(text) else False
+                return False
+            except StaleElementReferenceException:
+                return False
+
+        wait = self._wait if timeout is None else WebDriverWait(self._driver, timeout)
+        return wait.until(matching_text)
+
+    def _is_text_matching(self, locator, predicate, timeout=None):
+        try:
+            self._wait_for_text(locator, predicate, timeout)
+            return True
+        except TimeoutException:
+            return False
+
+    def _is_url_starting_with(self, prefix):
+        return self._is_condition_met(
+            lambda driver: driver.current_url.startswith(prefix)
+        )
+
     def _is_url_and_element_visible(self, url, locator):
         try:
             self._wait.until(ec.url_to_be(url))

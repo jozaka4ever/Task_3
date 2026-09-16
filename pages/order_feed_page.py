@@ -31,7 +31,7 @@ class OrderFeedPage(BasePage):
     def is_order_details_open(self, order_number):
         return self._is_element_visible(
             OrderFeedPageLocators.order_modal(order_number)
-        ) and self._driver.current_url.startswith(Urls.ORDER_DETAILS_PREFIX)
+        ) and self._is_url_starting_with(Urls.ORDER_DETAILS_PREFIX)
 
     def is_order_visible(self, order_number):
         return self._is_element_visible(OrderFeedPageLocators.order_card(order_number))
@@ -43,19 +43,15 @@ class OrderFeedPage(BasePage):
         return int(self._get_text(OrderFeedPageLocators.TODAY_COUNTER))
 
     def has_all_time_counter_increased(self, previous_value):
-        return self._is_condition_met(
-            lambda driver: (
-                int(driver.find_element(*OrderFeedPageLocators.ALL_TIME_COUNTER).text)
-                > previous_value
-            )
+        return self._is_text_matching(
+            OrderFeedPageLocators.ALL_TIME_COUNTER,
+            lambda text: text.isdigit() and int(text) > previous_value,
         )
 
     def has_today_counter_increased(self, previous_value):
-        return self._is_condition_met(
-            lambda driver: (
-                int(driver.find_element(*OrderFeedPageLocators.TODAY_COUNTER).text)
-                > previous_value
-            )
+        return self._is_text_matching(
+            OrderFeedPageLocators.TODAY_COUNTER,
+            lambda text: text.isdigit() and int(text) > previous_value,
         )
 
     def is_order_in_progress(self, order_number):

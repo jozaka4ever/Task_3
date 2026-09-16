@@ -35,7 +35,7 @@ class MainPage(BasePage):
         return (
             modal_is_visible
             and name_is_visible
-            and self._driver.current_url.startswith(Urls.INGREDIENT_DETAILS_PREFIX)
+            and self._is_url_starting_with(Urls.INGREDIENT_DETAILS_PREFIX)
         )
 
     def is_ingredient_details_closed(self):
@@ -53,9 +53,7 @@ class MainPage(BasePage):
 
     def is_ingredient_counter_equal(self, ingredient_name, expected_value):
         locator = MainPageLocators.ingredient_counter(ingredient_name)
-        return self._is_condition_met(
-            lambda driver: driver.find_element(*locator).text == str(expected_value)
-        )
+        return self._is_text_matching(locator, lambda text: text == str(expected_value))
 
     @allure.step("Собрать стандартный заказ")
     def build_standard_order(self):
@@ -72,33 +70,24 @@ class MainPage(BasePage):
     def submit_order(self):
         self._click(MainPageLocators.PLACE_ORDER_BUTTON)
 
-    def is_order_created(self):
-        def actual_order_number_is_visible(driver):
-            elements = driver.find_elements(*MainPageLocators.ORDER_NUMBER)
-            return bool(
-                elements
-                and elements[0].text.isdigit()
-                and elements[0].text != MainPageTexts.ORDER_NUMBER_PLACEHOLDER
-            )
+    @staticmethod
+    def _is_actual_order_number(text):
+        return text.isdigit() and text != MainPageTexts.ORDER_NUMBER_PLACEHOLDER
 
-        return self._is_condition_met(
-            actual_order_number_is_visible,
+    def is_order_created(self):
+        return self._is_text_matching(
+            MainPageLocators.ORDER_NUMBER,
+            self._is_actual_order_number,
             BrowserConfig.ORDER_WAIT_TIMEOUT,
         )
 
     def get_created_order_number(self):
-        def get_actual_order_number(driver):
-            elements = driver.find_elements(*MainPageLocators.ORDER_NUMBER)
-            if (
-                elements
-                and elements[0].text.isdigit()
-                and elements[0].text != MainPageTexts.ORDER_NUMBER_PLACEHOLDER
-            ):
-                return elements[0]
-            return False
-
-        number_element = self._wait.until(get_actual_order_number)
-        return int(number_element.text)
+        number = self._wait_for_text(
+            MainPageLocators.ORDER_NUMBER,
+            self._is_actual_order_number,
+            BrowserConfig.ORDER_WAIT_TIMEOUT,
+        )
+        return int(number)
 
     @allure.step("Закрыть окно созданного заказа")
     def close_order_modal(self):
